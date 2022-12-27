@@ -60,12 +60,13 @@ class MyModel(object):
                     [1] * self.batch_size, dtype='int64'),
                 num_classes=1000)
         ]
+        self.scaler = paddle.amp.GradScaler(init_loss_scaling=1024)
 
     def train(self):
         self.optimizer.clear_grad()
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
-                scaler = paddle.amp.GradScaler(init_loss_scaling=1024)
+                
                 with paddle.amp.auto_cast(
                         custom_black_list={
                             "flatten_contiguous_range", "greater_than"
@@ -73,9 +74,9 @@ class MyModel(object):
                         level="O1"):
                     pred = self.model(data)
                     loss = self.loss_fn(pred, target)
-                scaled = scaler.scale(loss).backward()
-                scaler.step(self.optimizer)
-                scaler.update()
+                scaled = self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
