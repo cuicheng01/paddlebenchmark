@@ -1,6 +1,7 @@
-from paddle.vision.models import resnet50
 import paddle
+from paddle.vision.models import resnet50
 from paddle.jit import to_static
+
 import time
 import numpy as np
 import argparse
@@ -11,20 +12,28 @@ import six
 def str2bool(v):
     return v.lower() in ("true", "t", "1")
 
+
 def init_args():
     parser = argparse.ArgumentParser()
-    # params for prediction engine
-    parser.add_argument("--batch_size", type=int, default=64)
+    # params for benchmark
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--dy2static", type=str2bool, default=False)
     parser.add_argument("--use_amp", type=str2bool, default=False)
-    parser.add_argument("--warmup_steps", type=int, default=30)
-    parser.add_argument("--run_steps", type=int, default=100) 
+    parser.add_argument("--warmup_steps", type=int, default=300)
+    parser.add_argument("--run_steps", type=int, default=1000) 
     return parser
+
 
 def parse_args():
     parser = init_args()
     return parser.parse_args()
 
+
+def print_args(args):
+    print ("-------------  Configuration Arguments -------------")
+    for arg, value in sorted(six.iteritems(vars(args))):
+        print("%25s : %s" % (arg, value))
+    print ("----------------------------------------------------")
 
 
 class MyModel(object):
@@ -39,8 +48,8 @@ class MyModel(object):
             parameters=self.model.parameters(),
         )
         self.loss_fn = paddle.nn.CrossEntropyLoss(soft_label=True)
-        self.real_input = [ paddle.randn((self.batch_size, 3, 224, 224)) ]
-        self.real_output = [ paddle.nn.functional.one_hot(paddle.to_tensor([1]*self.batch_size, dtype='int64'), num_classes=1000) ]
+        self.real_input = [paddle.randn((self.batch_size, 3, 224, 224))]
+        self.real_output = [paddle.nn.functional.one_hot(paddle.to_tensor([1]*self.batch_size, dtype='int64'), num_classes=1000)]
 
     def train(self):
         self.optimizer.clear_grad()
@@ -60,10 +69,7 @@ class MyModel(object):
 
 if __name__ == "__main__":
     args = parse_args()
-    print ("-------------  Configuration Arguments -------------")
-    for arg, value in sorted(six.iteritems(vars(args))):
-        print("%25s : %s" % (arg, value))
-    print ("----------------------------------------------------")
+    print_args(args)
     model = MyModel(batch_size=args.batch_size, use_amp=args.use_amp, dy2static=args.dy2static)
     place = paddle.CUDAPlace(0)
     latency_list = []
