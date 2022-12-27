@@ -14,10 +14,10 @@ sh run.sh
                batch_size : 32
                 dy2static : False
                 run_steps : 100
-                  use_amp : True
+                  use_amp : False
              warmup_steps : 30
 ----------------------------------------------------
-IPS: 823.4139224110694 img/s
+IPS: 782.5551206195113 img/s
 ```
 参数说明：
 - batch_size, 批次大小，默认 32
