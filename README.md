@@ -13,11 +13,11 @@ sh run.sh
 -------------  Configuration Arguments -------------
                batch_size : 32
                 dy2static : False
-                run_steps : 100
+                run_steps : 1000
                   use_amp : False
-             warmup_steps : 30
+             warmup_steps : 300
 ----------------------------------------------------
-IPS: 782.5551206195113 img/s
+IPS: 784.4619433371829 img/s
 ```
 参数说明：
 - batch_size, 批次大小，默认 32
