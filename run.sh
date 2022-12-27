@@ -1,6 +1,7 @@
 python benchmark.py \
     --batch_size=32 \
     --dy2static=False \
-    --use_amp=True \
-    --warmup_steps=30 \
-    --run_steps=100
+    --use_amp=False \
+    --warmup_steps=300 \
+    --run_steps=1000 \
+    --data_format="NCHW"

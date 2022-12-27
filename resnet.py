@@ -309,7 +309,7 @@ class ResNet(nn.Layer):
             [[input_image_channel, 32, 3, 2], [32, 32, 3, 1], [32, 64, 3, 1]]
         }
 
-        self.stem = nn.Sequential(* [
+        self.stem = nn.Sequential(*[
             ConvBNLayer(
                 num_channels=in_c,
                 num_filters=out_c,
@@ -349,7 +349,6 @@ class ResNet(nn.Layer):
             weight_attr=ParamAttr(initializer=Uniform(-stdv, stdv)))
 
         self.data_format = data_format
-
 
     def forward(self, x):
         with paddle.static.amp.fp16_guard():
@@ -586,7 +585,7 @@ def ResNet200_vd(pretrained=False, use_ssld=False, **kwargs):
     _load_pretrained(pretrained, model, MODEL_URLS["ResNet200_vd"], use_ssld)
     return model
 
-if __name__ == "__main__":
-    model = ResNet50()
-    paddle.flops(model, [1, 3, 224, 224])
 
+if __name__ == "__main__":
+    model = ResNet50(data_format="NHWC")
+    paddle.flops(model, [1, 3, 224, 224], print_detail=True)

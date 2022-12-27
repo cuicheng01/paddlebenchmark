@@ -7,7 +7,7 @@ import numpy as np
 import argparse
 import six
 
-#from resnet import ResNet50 as resnet50
+from resnet import ResNet50 as resnet50
 
 
 def str2bool(v):
@@ -22,6 +22,7 @@ def init_args():
     parser.add_argument("--use_amp", type=str2bool, default=False)
     parser.add_argument("--warmup_steps", type=int, default=300)
     parser.add_argument("--run_steps", type=int, default=1000)
+    parser.add_argument("--data_format", type=str, default="NCHW")
     return parser
 
 
@@ -43,15 +44,24 @@ class MyModel(object):
                  use_amp=False,
                  dy2static=False,
                  warmup_steps=30,
-                 run_steps=100):
+                 run_steps=100,
+                 data_format="NCHW"):
 
-        self.model = resnet50()
+        self.model = resnet50(data_format=data_format)
         if dy2static:
             self.model = to_static(self.model)
         self.batch_size = batch_size
         self.use_amp = use_amp
+        if self.use_amp == True:
+            AMP_RELATED_FLAGS_SETTING = {'FLAGS_max_inplace_grad_add': 8, }
+            if paddle.is_compiled_with_cuda():
+                AMP_RELATED_FLAGS_SETTING.update({
+                    'FLAGS_cudnn_batchnorm_spatial_persistent': 1
+                })
+            paddle.set_flags(AMP_RELATED_FLAGS_SETTING)
+
         self.optimizer = paddle.optimizer.Adam(
-            parameters=self.model.parameters(), )
+            parameters=self.model.parameters(), multi_precision=self.use_amp)
         self.loss_fn = paddle.nn.CrossEntropyLoss(soft_label=True)
         self.real_input = [paddle.randn((self.batch_size, 3, 224, 224))]
         self.real_output = [
@@ -60,13 +70,14 @@ class MyModel(object):
                     [1] * self.batch_size, dtype='int64'),
                 num_classes=1000)
         ]
-        self.scaler = paddle.amp.GradScaler(init_loss_scaling=1024)
+        self.scaler = paddle.amp.GradScaler(
+            init_loss_scaling=1024, use_dynamic_loss_scaling=True)
 
     def train(self):
         self.optimizer.clear_grad()
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
-                
+
                 with paddle.amp.auto_cast(
                         custom_black_list={
                             "flatten_contiguous_range", "greater_than"
@@ -90,7 +101,8 @@ if __name__ == "__main__":
     model = MyModel(
         batch_size=args.batch_size,
         use_amp=args.use_amp,
-        dy2static=args.dy2static)
+        dy2static=args.dy2static,
+        data_format=args.data_format)
     place = paddle.CUDAPlace(0)
 
     latency_list = []

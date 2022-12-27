@@ -12,6 +12,7 @@ sh run.sh
 ```
 -------------  Configuration Arguments -------------
                batch_size : 32
+              data_format : NCHW
                 dy2static : False
                 run_steps : 1000
                   use_amp : False
@@ -21,8 +22,9 @@ IPS: 784.4619433371829 img/s
 ```
 参数说明：
 - batch_size, 批次大小，默认 32
+- data_format, 数据格式，默认 "NCHW", 可选 "NHWC"
 - dy2static，是否动转静训练，默认不使用
-- use_amp，是否使用 amp 训练，默认不使用 
+- use_amp，是否使用 amp 训练，默认不使用
 - warmup_steps，训练 benchmark 的 warmup step 数量，默认 300
 - run_steps，训练 benchmark 的总 step 数量，默认 1000
 
