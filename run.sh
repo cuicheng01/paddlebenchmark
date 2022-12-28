@@ -4,4 +4,5 @@ python benchmark.py \
     --use_amp=False \
     --warmup_steps=300 \
     --run_steps=1000 \
-    --data_format="NCHW"
+    --data_format="NCHW" \
+    --use_scale=False
