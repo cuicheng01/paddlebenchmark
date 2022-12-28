@@ -23,6 +23,7 @@ def init_args():
     parser.add_argument("--warmup_steps", type=int, default=300)
     parser.add_argument("--run_steps", type=int, default=1000)
     parser.add_argument("--data_format", type=str, default="NCHW")
+    parser.add_argument("--use_scale", type=str2bool, default=True)
     return parser
 
 
@@ -45,7 +46,8 @@ class MyModel(object):
                  dy2static=False,
                  warmup_steps=30,
                  run_steps=100,
-                 data_format="NCHW"):
+                 data_format="NCHW",
+                 use_scale=True):
 
         self.model = resnet50(data_format=data_format)
         if dy2static:
@@ -70,6 +72,8 @@ class MyModel(object):
                     [1] * self.batch_size, dtype='int64'),
                 num_classes=1000)
         ]
+
+        self.use_scale = use_scale
         self.scaler = paddle.amp.GradScaler(
             init_loss_scaling=1024, use_dynamic_loss_scaling=True)
 
@@ -86,8 +90,12 @@ class MyModel(object):
                     pred = self.model(data)
                     loss = self.loss_fn(pred, target)
                 scaled = self.scaler.scale(loss).backward()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                
+                if self.use_scale:
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                else:
+                    self.optimizer.step()
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
@@ -102,7 +110,8 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         use_amp=args.use_amp,
         dy2static=args.dy2static,
-        data_format=args.data_format)
+        data_format=args.data_format,
+        use_scale=args.use_scale)
     place = paddle.CUDAPlace(0)
 
     latency_list = []
