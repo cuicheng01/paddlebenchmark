@@ -51,11 +51,19 @@ class MyModel(object):
                  use_scale=True,
                  input_channels=3):
 
+        self.batch_size = batch_size
         self.model = resnet50(
             data_format=data_format, input_image_channel=input_channels)
         if dy2static:
-            self.model = to_static(self.model)
-        self.batch_size = batch_size
+            build_strategy = paddle.static.BuildStrategy()
+            build_strategy.fuse_bn_act_ops = True
+            build_strategy.fuse_elewise_add_act_ops = True
+            build_strategy.fuse_bn_add_act_ops = True
+            build_strategy.enable_addto = True
+            specs = [paddle.static.InputSpec([self.batch_size, input_channels, 224, 224])]
+            specs[0].stop_gradient = True
+            self.model = to_static(self.model, input_spec=specs, build_strategy=build_strategy)
+            
         self.use_amp = use_amp
         if self.use_amp == True:
             AMP_RELATED_FLAGS_SETTING = {'FLAGS_max_inplace_grad_add': 8, }
@@ -86,8 +94,8 @@ class MyModel(object):
         self.optimizer.clear_grad()
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
-
                 with paddle.amp.auto_cast(
+#                        custom_white_list={'batch_norm'},
                         custom_black_list={
                             "flatten_contiguous_range", "greater_than"
                         },
