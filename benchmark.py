@@ -24,6 +24,7 @@ def init_args():
     parser.add_argument("--run_steps", type=int, default=1000)
     parser.add_argument("--data_format", type=str, default="NCHW")
     parser.add_argument("--use_scale", type=str2bool, default=True)
+    parser.add_argument("--input_channels", type=int, default=3)
     return parser
 
 
@@ -47,9 +48,11 @@ class MyModel(object):
                  warmup_steps=30,
                  run_steps=100,
                  data_format="NCHW",
-                 use_scale=True):
+                 use_scale=True,
+                 input_channels=3):
 
-        self.model = resnet50(data_format=data_format)
+        self.model = resnet50(
+            data_format=data_format, input_image_channel=input_channels)
         if dy2static:
             self.model = to_static(self.model)
         self.batch_size = batch_size
@@ -65,7 +68,9 @@ class MyModel(object):
         self.optimizer = paddle.optimizer.Adam(
             parameters=self.model.parameters(), multi_precision=self.use_amp)
         self.loss_fn = paddle.nn.CrossEntropyLoss(soft_label=True)
-        self.real_input = [paddle.randn((self.batch_size, 3, 224, 224))]
+        self.real_input = [
+            paddle.randn((self.batch_size, input_channels, 224, 224))
+        ]
         self.real_output = [
             paddle.nn.functional.one_hot(
                 paddle.to_tensor(
@@ -90,7 +95,7 @@ class MyModel(object):
                     pred = self.model(data)
                     loss = self.loss_fn(pred, target)
                 scaled = self.scaler.scale(loss).backward()
-                
+
                 if self.use_scale:
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
@@ -111,7 +116,8 @@ if __name__ == "__main__":
         use_amp=args.use_amp,
         dy2static=args.dy2static,
         data_format=args.data_format,
-        use_scale=args.use_scale)
+        use_scale=args.use_scale,
+        input_channels=args.input_channels)
     place = paddle.CUDAPlace(0)
 
     latency_list = []
