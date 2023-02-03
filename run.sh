@@ -1,9 +1,9 @@
 python benchmark.py \
-    --batch_size=32 \
+    --batch_size=256 \
     --dy2static=False \
     --use_amp=False \
-    --warmup_steps=300 \
-    --run_steps=1000 \
-    --data_format="NCHW" \
+    --warmup_steps=30 \
+    --run_steps=100 \
+    --data_format="NHWC" \
     --use_scale=Fasle \
     --input_channels=3

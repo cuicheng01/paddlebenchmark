@@ -8,6 +8,7 @@ import argparse
 import six
 
 from resnet import ResNet50 as resnet50
+from mobilenet_v3 import MobileNetV3_small_x1_0 as resnet50
 
 
 def str2bool(v):
