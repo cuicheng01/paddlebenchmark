@@ -60,10 +60,14 @@ class MyModel(object):
             build_strategy.fuse_elewise_add_act_ops = True
             build_strategy.fuse_bn_add_act_ops = True
             build_strategy.enable_addto = True
-            specs = [paddle.static.InputSpec([self.batch_size, input_channels, 224, 224])]
+            specs = [
+                paddle.static.InputSpec(
+                    [self.batch_size, input_channels, 224, 224])
+            ]
             specs[0].stop_gradient = True
-            self.model = to_static(self.model, input_spec=specs, build_strategy=build_strategy)
-            
+            self.model = to_static(
+                self.model, input_spec=specs, build_strategy=build_strategy)
+
         self.use_amp = use_amp
         if self.use_amp == True:
             AMP_RELATED_FLAGS_SETTING = {'FLAGS_max_inplace_grad_add': 8, }
@@ -91,11 +95,13 @@ class MyModel(object):
             init_loss_scaling=1024, use_dynamic_loss_scaling=True)
 
     def train(self):
-        self.optimizer.clear_grad()
+        self.optimizer.clear_grad
+        if self.use_amp:
+            self.model = paddle.amp.decorate(models=self.model, level="O1")
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
                 with paddle.amp.auto_cast(
-#                        custom_white_list={'batch_norm'},
+                        #                        custom_white_list={'batch_norm'},
                         custom_black_list={
                             "flatten_contiguous_range", "greater_than"
                         },
