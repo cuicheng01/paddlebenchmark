@@ -1,5 +1,5 @@
 import paddle
-from paddle.vision.models import resnet50
+# from paddle.vision.models import resnet50 as ResNet50
 from paddle.jit import to_static
 
 import time
@@ -7,9 +7,9 @@ import numpy as np
 import argparse
 import six
 
-from resnet import ResNet50 as resnet50
+from resnet import ResNet50
 from mobilenet_v3 import MobileNetV3_small_x1_0
-from test_net import MyNet
+from mynet import MyNet
 
 
 def str2bool(v):
@@ -19,8 +19,10 @@ def str2bool(v):
 def init_args():
     parser = argparse.ArgumentParser()
     # params for benchmark
+    parser.add_argument("--model", type=str, default="ResNet50")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--dy2static", type=str2bool, default=False)
+    parser.add_argument("--static_op_fuse", type=str2bool, default=False)
     parser.add_argument("--use_amp", type=str2bool, default=False)
     parser.add_argument("--warmup_steps", type=int, default=300)
     parser.add_argument("--run_steps", type=int, default=1000)
@@ -45,9 +47,11 @@ def print_args(args):
 
 class MyModel(object):
     def __init__(self,
+                 model="ResNet50",
                  batch_size=32,
                  use_amp=False,
                  dy2static=False,
+                 static_op_fuse=False,
                  warmup_steps=30,
                  run_steps=100,
                  data_format="NCHW",
@@ -56,15 +60,17 @@ class MyModel(object):
                  amp_mode="O1"):
 
         self.batch_size = batch_size
-        self.model = MyNet(data_format=data_format)
-        #         self.model = resnet50(
-        #             data_format=data_format, input_image_channel=input_channels)
+        if "ResNet" not in model:
+            self.model = eval(model)(data_format=data_format)
+        else:
+            self.model = eval(model)(data_format=data_format, input_image_channel=input_channels)
         if dy2static:
             build_strategy = paddle.static.BuildStrategy()
-            build_strategy.fuse_bn_act_ops = True
-            build_strategy.fuse_elewise_add_act_ops = True
-            build_strategy.fuse_bn_add_act_ops = True
-            build_strategy.enable_addto = True
+            if static_op_fuse:
+                build_strategy.fuse_bn_act_ops = True
+                build_strategy.fuse_elewise_add_act_ops = True
+                build_strategy.fuse_bn_add_act_ops = True
+                build_strategy.enable_addto = True
             specs = [
                 paddle.static.InputSpec(
                     [self.batch_size, input_channels, 224, 224])
@@ -132,9 +138,11 @@ if __name__ == "__main__":
     print_args(args)
 
     model = MyModel(
+        model=args.model,
         batch_size=args.batch_size,
         use_amp=args.use_amp,
         dy2static=args.dy2static,
+        static_op_fuse=args.static_op_fuse,
         data_format=args.data_format,
         use_scale=args.use_scale,
         input_channels=args.input_channels,
