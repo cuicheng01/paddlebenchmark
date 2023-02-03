@@ -33,7 +33,7 @@ class MyNet(paddle.nn.Layer):
         ])
 
         self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(in_features=1600, out_features=num_classes)
+        self.fc = nn.Linear(in_features=1600, out_features=num_classes)
         self.data_format = data_format
 
     def forward(self, x):
@@ -53,5 +53,5 @@ class MyNet(paddle.nn.Layer):
             x = F.relu(x)
 
             x = self.flatten(x)
-            x = self.linear1(x)
+            x = self.fc(x)
         return x
