@@ -8,6 +8,7 @@ import argparse
 import six
 
 from resnet import ResNet50 as resnet50
+from test_net import MyNet
 
 
 def str2bool(v):
@@ -25,6 +26,7 @@ def init_args():
     parser.add_argument("--data_format", type=str, default="NCHW")
     parser.add_argument("--use_scale", type=str2bool, default=True)
     parser.add_argument("--input_channels", type=int, default=3)
+    parser.add_argument("--amp_mode", type=str, default="O1")
     return parser
 
 
@@ -49,21 +51,27 @@ class MyModel(object):
                  run_steps=100,
                  data_format="NCHW",
                  use_scale=True,
-                 input_channels=3):
+                 input_channels=3,
+                 amp_mode="O1"):
 
         self.batch_size = batch_size
-        self.model = resnet50(
-            data_format=data_format, input_image_channel=input_channels)
+        self.model = MyNet(data_format=data_format)
+        #         self.model = resnet50(
+        #             data_format=data_format, input_image_channel=input_channels)
         if dy2static:
             build_strategy = paddle.static.BuildStrategy()
             build_strategy.fuse_bn_act_ops = True
             build_strategy.fuse_elewise_add_act_ops = True
             build_strategy.fuse_bn_add_act_ops = True
             build_strategy.enable_addto = True
-            specs = [paddle.static.InputSpec([self.batch_size, input_channels, 224, 224])]
+            specs = [
+                paddle.static.InputSpec(
+                    [self.batch_size, input_channels, 224, 224])
+            ]
             specs[0].stop_gradient = True
-            self.model = to_static(self.model, input_spec=specs, build_strategy=build_strategy)
-            
+            self.model = to_static(
+                self.model, input_spec=specs, build_strategy=build_strategy)
+
         self.use_amp = use_amp
         if self.use_amp == True:
             AMP_RELATED_FLAGS_SETTING = {'FLAGS_max_inplace_grad_add': 8, }
@@ -86,20 +94,23 @@ class MyModel(object):
                 num_classes=1000)
         ]
 
+        self.amp_mode = amp_mode
         self.use_scale = use_scale
         self.scaler = paddle.amp.GradScaler(
             init_loss_scaling=1024, use_dynamic_loss_scaling=True)
 
     def train(self):
         self.optimizer.clear_grad()
+        self.model = paddle.amp.decorate(
+            models=self.model, level=self.amp_mode)
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
                 with paddle.amp.auto_cast(
-#                        custom_white_list={'batch_norm'},
+                        #                        custom_white_list={'batch_norm'},
                         custom_black_list={
                             "flatten_contiguous_range", "greater_than"
                         },
-                        level="O1"):
+                        level=self.amp_mode):
                     pred = self.model(data)
                     loss = self.loss_fn(pred, target)
                 scaled = self.scaler.scale(loss).backward()
@@ -125,7 +136,8 @@ if __name__ == "__main__":
         dy2static=args.dy2static,
         data_format=args.data_format,
         use_scale=args.use_scale,
-        input_channels=args.input_channels)
+        input_channels=args.input_channels,
+        amp_mode=args.amp_mode)
     place = paddle.CUDAPlace(0)
 
     latency_list = []
