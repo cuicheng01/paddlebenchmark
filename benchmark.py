@@ -2,8 +2,6 @@ import paddle
 from paddle.vision.models import resnet50
 from paddle.jit import to_static
 
-import paddle.nn.functional as F
-import paddle.nn as nn
 import time
 import numpy as np
 import argparse
