@@ -9,7 +9,6 @@ import six
 from paddleclas.ppcls.arch.backbone import *
 from mynet import MyNet
 
-
 def str2bool(v):
     return v.lower() in ("true", "t", "1")
 
@@ -108,8 +107,9 @@ class MyModel(object):
 
     def train(self):
         self.optimizer.clear_grad()
-        self.model = paddle.amp.decorate(
-            models=self.model, level=self.amp_mode)
+        if self.use_amp:
+            self.model = paddle.amp.decorate(
+                models=self.model, level=self.amp_mode)
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
                 with paddle.amp.auto_cast(
