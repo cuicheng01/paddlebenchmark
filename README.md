@@ -1,6 +1,6 @@
 # paddlebenchmark
 
-测试 paddlepaddle 实现的 ResNet50 在 GPU 上的训练 benchmark。
+测试 paddlepaddle 实现的骨干网络在 GPU 上的训练 benchmark。请首先安装 paddlepaddle、paddleclas。
 
 ## 测试方法
 
@@ -11,7 +11,7 @@ sh run.sh
 结果如下：
 ```
 -------------  Configuration Arguments -------------
-                 amp_mode : O1
+                 amp_mode : O2
                batch_size : 128
               data_format : NCHW
                 dy2static : True
@@ -26,7 +26,7 @@ sh run.sh
 IPS: 1879.9288446672845 img/s
 ```
 参数说明：
-- amp_mode, amp模式，默认是 O1，可选 O2
+- amp_mode, amp模式，默认是 O2，可选 O1
 - batch_size, 批次大小，默认 128
 - data_format, 数据格式，默认 "NCHW", 可选 "NHWC"
 - dy2static，是否动转静训练，默认不使用
