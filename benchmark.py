@@ -29,6 +29,7 @@ def init_args():
     parser.add_argument("--input_channels", type=int, default=3)
     parser.add_argument("--amp_mode", type=str, default="O1")
     parser.add_argument("--image_size", type=int, default=224)
+    parser.add_argument("--opt", type=str, default="Momentum")
     return parser
 
 
@@ -57,7 +58,8 @@ class MyModel(object):
                  use_scale=True,
                  input_channels=3,
                  amp_mode="O1",
-                 image_size=224):
+                 image_size=224,
+                 opt="Momentum"):
 
         self.batch_size = batch_size
         if "ResNet" not in model:
@@ -87,9 +89,14 @@ class MyModel(object):
                     'FLAGS_cudnn_batchnorm_spatial_persistent': 1
                 })
             paddle.set_flags(AMP_RELATED_FLAGS_SETTING)
-
+        '''
         self.optimizer = paddle.optimizer.Adam(
             parameters=self.model.parameters(), multi_precision=self.use_amp)
+        '''
+        opt = "paddle.optimizer." + opt
+        self.optimizer = eval(opt)(
+            parameters=self.model.parameters(), multi_precision=self.use_amp)
+
         self.loss_fn = paddle.nn.CrossEntropyLoss(soft_label=True)
         self.real_input = [
             paddle.randn((self.batch_size, input_channels, image_size, image_size))
@@ -108,10 +115,10 @@ class MyModel(object):
 
     def train(self):
         self.optimizer.clear_grad()
-        self.model = paddle.amp.decorate(
-            models=self.model, level=self.amp_mode)
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
+                self.model = paddle.amp.decorate(
+            models=self.model, level=self.amp_mode)
                 with paddle.amp.auto_cast(
                         #                        custom_white_list={'batch_norm'},
                         custom_black_list={
@@ -147,7 +154,8 @@ if __name__ == "__main__":
         use_scale=args.use_scale,
         input_channels=args.input_channels,
         amp_mode=args.amp_mode,
-        image_size=args.image_size)
+        image_size=args.image_size,
+        opt=args.opt)
     place = paddle.CUDAPlace(0)
 
     latency_list = []
@@ -159,4 +167,5 @@ if __name__ == "__main__":
             model.train()
             t2 = time.time()
             latency_list.append(t2 - t1)
-    print("IPS: {} img/s".format(round(args.batch_size / np.mean(latency_list), 2)))
+    latency = round(args.batch_size / np.mean(latency_list), 2)
+    print("IPS: {} img/s".format(latency), args.batch_size)
