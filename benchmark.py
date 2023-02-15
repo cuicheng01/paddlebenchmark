@@ -115,10 +115,11 @@ class MyModel(object):
 
     def train(self):
         self.optimizer.clear_grad()
+        if self.use_amp:
+            self.model = paddle.amp.decorate(
+                models=self.model, level=self.amp_mode)
         for data, target in zip(self.real_input, self.real_output):
             if self.use_amp == True:
-                self.model = paddle.amp.decorate(
-            models=self.model, level=self.amp_mode)
                 with paddle.amp.auto_cast(
                         #                        custom_white_list={'batch_norm'},
                         custom_black_list={
