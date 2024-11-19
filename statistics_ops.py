@@ -11,6 +11,11 @@ def parse_args():
     parser = init_args()
     return parser.parse_args()
 
+def parse_line(line):
+    model_name, ops_string = line.strip().split(" ", 1)
+    ops_list = eval(ops_string)
+    ops_names = [op[0] for op in ops_list]
+    return f"{model_name.split('_infe')[0]}, " + " ".join(ops_names)
 
 def statistics_ops(args):
     paddle.enable_static()
