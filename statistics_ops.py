@@ -1,5 +1,4 @@
 import paddle
-import paddle.fluid as fluid
 import argparse
 
 def init_args():
@@ -26,7 +25,7 @@ def statistics_ops(args):
             else:
                 ops_dict[op.type] = ops_dict[op.type] + 1
     ops_dict = sorted(ops_dict.items(), key=lambda x: x[1], reverse=True)
-    print(ops_dict)
+    print(args.path_prefix, ops_dict)
 
 
 if __name__=="__main__":
